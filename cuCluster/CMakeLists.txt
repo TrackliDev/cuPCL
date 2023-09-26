@@ -31,6 +31,16 @@ endif()
 # Print target architecture
 message("Target architecture: ${TARGET_ARCH}")
 
+# Set CC and NVCC variables based on target architecture
+set(CC "g++")
+if (${TARGET_ARCH} STREQUAL "aarch64")
+    set(NVCC "/usr/local/${CUDAVERSION}/bin/nvcc -m64 -ccbin ${CC}")
+elseif (${TARGET_ARCH} STREQUAL "x86_64")
+    set(NVCC "/usr/local/${CUDAVERSION}/bin/nvcc -m64")
+else()
+    message(FATAL_ERROR "Unsupported target architecture: ${TARGET_ARCH}")
+endif()
+
 # Set CUDA flags and libraries
 set(CUDA_CFLAGS "-I/usr/local/${CUDAVERSION}/include")
 set(CUDA_LIBS "-L/usr/local/${CUDAVERSION}/lib64 -lcudart_static -lrt -ldl -lpthread -lcudart")
