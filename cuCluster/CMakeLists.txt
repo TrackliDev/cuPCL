@@ -1,11 +1,35 @@
 cmake_minimum_required(VERSION 3.0)
 project(your_project_name)
 
-# Set CUDA version
-set(CUDA_VERSION "" CACHE STRING "CUDA version")
+# Execute shell command to get CUDA version
+execute_process(
+    COMMAND dpkg -l | grep cuda-core | sed -e "s/ \{1,\}/ /g" | cut -d ' ' -f 3 | cut -d '.' -f 1,2 | sed -e "s/-.*//g" | sort -n | tail -n 1
+    OUTPUT_VARIABLE CUDA_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
-# Set target architecture
-set(TARGET_ARCH "" CACHE STRING "Target architecture")
+# Check if CUDA version is found
+if (NOT CUDA_VERSION)
+    message(FATAL_ERROR "Failed to find CUDA version")
+endif()
+
+# Print CUDA version
+message("CUDA version: ${CUDA_VERSION}")
+
+# Execute shell command to get target architecture
+execute_process(
+    COMMAND uname -m
+    OUTPUT_VARIABLE TARGET_ARCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Check if target architecture is found
+if (NOT TARGET_ARCH)
+    message(FATAL_ERROR "Failed to find target architecture")
+endif()
+
+# Print target architecture
+message("Target architecture: ${TARGET_ARCH}")
 
 # Set CUDA flags and libraries
 set(CUDA_CFLAGS "-I/usr/local/${CUDAVERSION}/include")
