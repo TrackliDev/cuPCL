@@ -2,11 +2,12 @@ cmake_minimum_required(VERSION 3.0)
 project(your_project_name)
 
 # Execute shell command to get CUDA version
-execute_process(
-    COMMAND dpkg -l | grep cuda-core | sed -e "s/ \{1,\}/ /g" | cut -d ' ' -f 3 | cut -d '.' -f 1,2 | sed -e "s/-.*//g" | sort -n | tail -n 1
-    OUTPUT_VARIABLE CUDAVERSION
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+# execute_process(
+#     COMMAND "dpkg -l | grep cuda-core | sed -e \"s/ \\{1,\\}/ /g\" | cut -d ' ' -f 3 | cut -d '.' -f 1,2 | sed -e \"s/-.*//g\" | sort -n | tail -n 1"
+#     OUTPUT_VARIABLE CUDAVERSION
+#     OUTPUT_STRIP_TRAILING_WHITESPACE
+# )
+set(CUDAVERSION cuda)
 
 # Check if CUDA version is found
 if (NOT CUDAVERSION)
@@ -44,14 +45,20 @@ endif()
 set(CCFLAGS "-D_REENTRANT")
 set(CXXFLAGS "-std=c++14")
 
-set(NVCCFLAGS "-G --ptxas-options=-v")
+set(NVCCFLAGS "")
+# set(NVCCFLAGS "-G --ptxas-options=-v")
 
 # Execute shell command to get CUDA_VERSION from cuda.h file
+set(ASASA "cat /usr/local/${CUDAVERSION}/targets/${TARGET_ARCH}-linux/include/cuda.h | grep \"define CUDA_VERSION\" | awk '{print \$3}'")
+message("ASASA: ${ASASA}")
 execute_process(
-    COMMAND cat /usr/local/${CUDAVERSION}/targets/${TARGET_ARCH}-linux/include/cuda.h | grep "define CUDA_VERSION" | awk '{print $3}'
+    COMMAND "cat /usr/local/${CUDAVERSION}/targets/${TARGET_ARCH}-linux/include/cuda.h | grep \"define CUDA_VERSION\" | awk '{print \$3}'"
     OUTPUT_VARIABLE CUDA_VERSION
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+# Print later CUDA version
+message("Later CUDA version: ${CUDA_VERSION}")
 
 # Set SMS variable based on CUDA_VERSION and target architecture
 set(SMS "")
