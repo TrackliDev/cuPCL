@@ -4,17 +4,17 @@ project(your_project_name)
 # Execute shell command to get CUDA version
 execute_process(
     COMMAND dpkg -l | grep cuda-core | sed -e "s/ \{1,\}/ /g" | cut -d ' ' -f 3 | cut -d '.' -f 1,2 | sed -e "s/-.*//g" | sort -n | tail -n 1
-    OUTPUT_VARIABLE CUDA_VERSION
+    OUTPUT_VARIABLE CUDAVERSION
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
 # Check if CUDA version is found
-if (NOT CUDA_VERSION)
+if (NOT CUDAVERSION)
     message(FATAL_ERROR "Failed to find CUDA version")
 endif()
 
 # Print CUDA version
-message("CUDA version: ${CUDA_VERSION}")
+message("CUDA version: ${CUDAVERSION}")
 
 # Execute shell command to get target architecture
 execute_process(
@@ -40,6 +40,57 @@ elseif (${TARGET_ARCH} STREQUAL "x86_64")
 else()
     message(FATAL_ERROR "Unsupported target architecture: ${TARGET_ARCH}")
 endif()
+
+set(CCFLAGS "-D_REENTRANT")
+set(CXXFLAGS "-std=c++14")
+
+set(NVCCFLAGS "-G --ptxas-options=-v")
+
+# Execute shell command to get CUDA_VERSION from cuda.h file
+execute_process(
+    COMMAND cat /usr/local/${CUDAVERSION}/targets/${TARGET_ARCH}-linux/include/cuda.h | grep "define CUDA_VERSION" | awk '{print $3}'
+    OUTPUT_VARIABLE CUDA_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Set SMS variable based on CUDA_VERSION and target architecture
+set(SMS "")
+if (${CUDA_VERSION} EQUAL 8000)
+  set(SMS_VOLTA "")
+else()
+  if (NOT ${TARGET_ARCH} STREQUAL "ppc64le")
+    if (${CUDA_VERSION} EQUAL 9000)
+      set(SMS_VOLTA "70")
+    else()
+      set(SMS_VOLTA "70 72")
+    endif()
+  else()
+    set(SMS_VOLTA "70")
+  endif()
+endif()
+
+if (${TARGET_ARCH} STREQUAL "aarch64")
+    if (${CUDA_VERSION} EQUAL 9000)
+      set(SMS_VOLTA "62 70")
+    endif()
+endif()
+
+if (${CUDA_VERSION} EQUAL 10020)
+set(SMS_TURING "75")
+endif()
+
+if (${CUDA_VERSION} EQUAL 11040)
+set(SMS_AMPERE "87")
+endif()
+
+# Gencode arguments
+set(SMS "30 35 37 50 52 53 60 61 62 ${SMS_VOLTA} ${SMS_TURING} ${SMS_AMPERE}")
+message("SMS: ${SMS}")
+
+set(GENCODE_FLAGS "")
+foreach(sm ${SMS})
+    list(APPEND GENCODE_FLAGS "-gencode arch=compute_${sm},code=sm_${sm}")
+endforeach()
 
 # Set CUDA flags and libraries
 set(CUDA_CFLAGS "-I/usr/local/${CUDAVERSION}/include")
