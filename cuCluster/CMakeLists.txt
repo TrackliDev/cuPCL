@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(your_project_name)
+project(cu_cluster_example)
 
 # Set CUDA flags and libraries
 set(CUDA_CFLAGS "/usr/local/cuda/include")
@@ -16,6 +16,7 @@ list(APPEND INCLUDE "/usr/local/include")
 list(APPEND INCLUDE "/usr/include/eigen3/")
 list(APPEND INCLUDE "/usr/include/pcl-1.10/")
 list(APPEND INCLUDE "/usr/include/vtk-6.3/")
+list(APPEND INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/lib/")
 
 # Set additional libraries
 set(LIBRARIES "")
@@ -32,7 +33,8 @@ list(APPEND LIBRARIES "pcl_search")
 list(APPEND LIBRARIES "pcl_filters")
 list(APPEND LIBRARIES "pcl_kdtree")
 list(APPEND LIBRARIES "pcl_segmentation")
-list(APPEND LIBRARIES "pcl_visualization")
+list(APPEND LIBRARIES "pcl_visualization") 
+list(APPEND LIBRARIES "${CMAKE_CURRENT_SOURCE_DIR}/lib/libcudacluster.so")
 
 # Set link directories
 set(LINK_DIRS "")
@@ -41,21 +43,22 @@ list(APPEND LINK_DIRS "/usr/local/lib")
 list(APPEND LINK_DIRS "/usr/local/cuda/lib64")
 # list(APPEND LINK_DIRS "/usr/lib/aarch64-linux-gnu/")
 
-# Collect source files
-file(GLOB LIBRARY_FILES "./lib/*.so")
+# Build library
+add_library(cu_cluster INTERFACE)
 
-# Build target
-add_executable(demo "./main.cpp"
-                    "./lib/cudaCluster.h")
 # Compile setup
-target_compile_definitions(demo PRIVATE -D_REENTRANT)
-target_compile_options(demo PRIVATE -std=c++14 -fPIC)
-target_compile_features(demo PUBLIC cxx_std_14)
+target_compile_definitions(cu_cluster INTERFACE -D_REENTRANT)
+target_compile_options(cu_cluster INTERFACE -std=c++14 -fPIC)
+target_compile_features(cu_cluster INTERFACE cxx_std_14)
 
 # Includes and libraries
-target_link_directories(demo PRIVATE ${LINK_DIRS})
-target_link_libraries(demo PRIVATE ${LIBRARIES} ${LIBRARY_FILES})
-target_include_directories(demo PRIVATE ${INCLUDE})
+target_link_directories(cu_cluster INTERFACE ${LINK_DIRS})
+target_link_libraries(cu_cluster INTERFACE ${LIBRARIES})
+target_include_directories(cu_cluster INTERFACE ${INCLUDE})
+
+# Build demonstration target
+add_executable(demo "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
+target_link_libraries(demo PRIVATE cu_cluster)
 
 # Copy .pcd file to build directory
 set(PCD_FILE "${CMAKE_CURRENT_SOURCE_DIR}/sample.pcd")
@@ -67,4 +70,3 @@ add_custom_command(
 )
 add_custom_target(copy_pcd_file ALL DEPENDS ${PCD_DEST})
 add_dependencies(demo copy_pcd_file)
-
